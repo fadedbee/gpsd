@@ -768,6 +768,9 @@ gps_mask_t ubx_parse(struct gps_device_t * session, unsigned char *buf,
 	break;
     case UBX_MON_HW:
 	gpsd_log(&session->context->errout, LOG_DATA, "UBX_MON_HW\n");
+#ifdef THORCOM_FAULT_REPORTING_ENABLE
+	ubx_msg_mon_hw(session, buf, data_len);
+#endif // THORCOM_FAULT_REPORTING_ENABLE
 	break;
     case UBX_MON_USB:
 	gpsd_log(&session->context->errout, LOG_DATA, "UBX_MON_USB\n");
@@ -1126,7 +1129,7 @@ static void ubx_cfg_prt(struct gps_device_t *session,
          * for example, the UBX_MON_VER fails here, but works in other
          * contexts
          */
-	unsigned char msg[3] = {0, 0, 0};
+	unsigned char msg[4] = {0};
         /* request SW and HW Versions */
 	(void)ubx_write(session, UBX_CLASS_MON, 0x04, msg, 0);
 
@@ -1171,6 +1174,34 @@ static void ubx_cfg_prt(struct gps_device_t *session,
 	msg[1] = 0x11;		/* msg id  = UBX-NAV-VELECEF */
 	msg[2] = 0x01;		/* rate */
 	(void)ubx_write(session, 0x06u, 0x01, msg, 3);
+
+#ifdef THORCOM_FAULT_REPORTING_ENABLE
+	/*
+	 * UBX-CFG-ANT
+	 */
+#define TFR_CFG 0x06
+#define TFR_ANT 0x13
+
+#define TFR_RECONFIG  0	/* this means that that the pins are *NOT* reconfigured */
+#define TFR_PINOCD    0
+#define TFR_PINSCD    0
+#define TFR_PINSWITCH 0 
+#define TFR_PINS ((unsigned short)(TFR_RECONFIG << 15 | TFR_PINOCD << 10 | TFR_PINSCD << 5 | TFR_PINSWITCH << 0))	
+
+#define TFR_SVCS      1
+#define TFR_SCD       1 
+#define TFR_OCD       1
+#define TFR_PDWNONSCD 1
+#define TFR_RECOVERY  1
+#define TFR_FLAGS ((unsigned short)(TFR_RECOVERY << 4 | TFR_PDWNONSCD << 3 | TFR_OCD << 2 | TFR_SCD << 1 | TFR_SVCS << 0))	
+
+	msg[0] = TFR_FLAGS & 0xFF;
+	msg[1] = (TFR_FLAGS >> 8) & 0xFF;
+	msg[2] = TFR_PINS & 0xFF;
+	msg[3] = (TFR_PINS >> 8) & 0xFF;
+
+	(void)ubx_write(session, TFR_CFG, TFR_ANT, msg, 4);
+#endif /* THORCOM_FAULT_REPORTING_ENABLE */
 
 
 #ifdef __UNUSED__

@@ -439,6 +439,9 @@ if 'CCFLAGS' not in os.environ:
 # We are C99, tell the world
 # env.Append(CFLAGS=['-D_ISOC99_SOURCE'])
 
+# Turn on fault reporting
+env.Append(CFLAGS=['-DTHORCOM_FAULT_REPORTING_ENABLE'])
+
 # We are POSIX 2001, tell the world
 # env.Append(CFLAGS=['-D_POSIX_C_SOURCE=200112L'])
 
