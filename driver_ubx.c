@@ -57,6 +57,13 @@
 #define UBX_CFG_LEN		20
 #define outProtoMask		14
 
+#ifdef THORCOM_FAULT_REPORTING
+#define TFR_ASTATUS_OFFSET 20
+#define TFR_APOWER_OFFSET  21
+enum tfr_astatus { ASTATUS_INIT, ASTATUS_DONTKNOW, ASTATUS_OK, ASTATUS_SHORT, ASTATUS_OPEN };
+enum tfr_apower { APOWER_OFF, APOWER_ON, APOWER_DONTKNOW };
+#endif // THORCOM_FAULT_REPORTING
+
 static gps_mask_t ubx_parse(struct gps_device_t *session, unsigned char *buf,
 			    size_t len);
 static gps_mask_t ubx_msg_nav_dop(struct gps_device_t *session,
@@ -126,6 +133,39 @@ ubx_msg_mon_ver(struct gps_device_t *session, unsigned char *buf,
 	     "UBX_MON_VER: %.*s\n",
              (int)sizeof(obuf), obuf);
 }
+
+#ifdef THORCOM_FAULT_REPORTING
+/**
+ * UBX-MON-HW
+ *
+ * Set/clear bits in session->faults.
+ */
+static void // TODO: should this return a gps_mask_t instead?
+ubx_msg_mon_hw(struct gps_device_t *session, unsigned char *buf,
+		size_t data_len)
+{
+    if (data_len < 60) {
+        gpsd_log(&session->context->errout, LOG_WARN,
+            "Invalid MON HW message, payload len %ld", data_len);
+        return;
+    }
+    unsigned char astatus = buf[TFR_ASTATUS_OFFSET];
+    unsigned char apower = buf[TFR_APOWER_OFFSET]; // ignored for now
+
+    switch (astatus) {
+        case ASTATUS_SHORT:
+            session->gpsdata.faults |= TFR_FAULT_ANTENNA_SHORT_CIRCUIT;
+        break;
+        case ASTATUS_OPEN:
+            session->gpsdata.faults |= TFR_FAULT_ANTENNA_OPEN_CIRCUIT;
+        break;
+        default: // INIT, DONTKNOW, OK
+            session->gpsdata.faults &= ~TFR_FAULT_ANTENNA_SHORT_CIRCUIT;
+            session->gpsdata.faults &= ~TFR_FAULT_ANTENNA_OPEN_CIRCUIT;
+        break;
+    }
+}
+#endif //THORCOM_FAULT_REPORTING
 
 /*
  * Navigation Position ECEF message
@@ -768,9 +808,9 @@ gps_mask_t ubx_parse(struct gps_device_t * session, unsigned char *buf,
 	break;
     case UBX_MON_HW:
 	gpsd_log(&session->context->errout, LOG_DATA, "UBX_MON_HW\n");
-#ifdef THORCOM_FAULT_REPORTING_ENABLE
+#ifdef THORCOM_FAULT_REPORTING
 	ubx_msg_mon_hw(session, buf, data_len);
-#endif // THORCOM_FAULT_REPORTING_ENABLE
+#endif // THORCOM_FAULT_REPORTING
 	break;
     case UBX_MON_USB:
 	gpsd_log(&session->context->errout, LOG_DATA, "UBX_MON_USB\n");
@@ -1175,25 +1215,31 @@ static void ubx_cfg_prt(struct gps_device_t *session,
 	msg[2] = 0x01;		/* rate */
 	(void)ubx_write(session, 0x06u, 0x01, msg, 3);
 
-#ifdef THORCOM_FAULT_REPORTING_ENABLE
+#ifdef THORCOM_FAULT_REPORTING
 	/*
 	 * UBX-CFG-ANT
+     *
+     * This configures the GPS to report antenna faults.
+     * See: https://www.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_(UBX-13003221)_Public.pdf#%5B%7B%22num%22%3A505%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C0%2C671.81%2Cnull%5D
 	 */
 #define TFR_CFG 0x06
 #define TFR_ANT 0x13
 
-#define TFR_RECONFIG  0	/* this means that that the pins are *NOT* reconfigured */
+#define TFR_RECONFIG  0	/* this means the pins are *NOT* reconfigured */
 #define TFR_PINOCD    0
 #define TFR_PINSCD    0
 #define TFR_PINSWITCH 0 
-#define TFR_PINS ((unsigned short)(TFR_RECONFIG << 15 | TFR_PINOCD << 10 | TFR_PINSCD << 5 | TFR_PINSWITCH << 0))	
+#define TFR_PINS ((unsigned short)(TFR_RECONFIG << 15 | TFR_PINOCD << 10 |\
+                                   TFR_PINSCD << 5 | TFR_PINSWITCH << 0))	
 
 #define TFR_SVCS      1
 #define TFR_SCD       1 
 #define TFR_OCD       1
 #define TFR_PDWNONSCD 1
 #define TFR_RECOVERY  1
-#define TFR_FLAGS ((unsigned short)(TFR_RECOVERY << 4 | TFR_PDWNONSCD << 3 | TFR_OCD << 2 | TFR_SCD << 1 | TFR_SVCS << 0))	
+#define TFR_FLAGS ((unsigned short)(TFR_RECOVERY << 4 | TFR_PDWNONSCD << 3 |\
+                                    TFR_OCD << 2 | TFR_SCD << 1 |\
+                                    TFR_SVCS << 0))	
 
 	msg[0] = TFR_FLAGS & 0xFF;
 	msg[1] = (TFR_FLAGS >> 8) & 0xFF;
@@ -1201,7 +1247,7 @@ static void ubx_cfg_prt(struct gps_device_t *session,
 	msg[3] = (TFR_PINS >> 8) & 0xFF;
 
 	(void)ubx_write(session, TFR_CFG, TFR_ANT, msg, 4);
-#endif /* THORCOM_FAULT_REPORTING_ENABLE */
+#endif /* THORCOM_FAULT_REPORTING */
 
 
 #ifdef __UNUSED__

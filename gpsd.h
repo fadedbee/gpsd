@@ -428,11 +428,10 @@ typedef enum {service_unknown,
 	      service_ntrip,
 } servicetype_t;
 
-#ifdef THORCOM_FAULT_REPORTING_ENABLE
-typedef enum {fault_antenna_short_circuit,
-              fault_antenna_open_citcuit,
-} faulttype_t;
-#endif /* THORCOM_FAULT_REPORTING_ENABLE */
+#ifdef THORCOM_FAULT_REPORTING
+#define TFR_FAULT_ANTENNA_SHORT_CIRCUIT (1<<0);
+#define TFR_FAULT_ANTENNA_OPEN_CIRCUIT  (1<<1);
+#endif /* THORCOM_FAULT_REPORTING */
 
 /*
  * Private state information about an NTRIP stream.
@@ -531,9 +530,6 @@ struct gps_device_t {
     int fixcnt;				/* count of fixes from this device */
     struct gps_fix_t newdata;		/* where drivers put their data */
     struct gps_fix_t oldfix;		/* previous fix for error modeling */
-#ifdef THORCOM_FAULT_REPORTING_ENABLE
-    int faults;                         /* bit field of faults */
-#endif /* THORCOM_FAULT_REPORTING_ENABLE */
 #ifdef NMEA0183_ENABLE
     struct {
 	unsigned short sats_used[MAXCHANNELS];

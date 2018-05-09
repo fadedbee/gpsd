@@ -2057,9 +2057,11 @@ struct gps_data_t {
 	struct devconfig_t list[MAXUSERDEVS];
     } devices;
 
-#ifdef THORCOM_FAULT_REPORTING_ENABLE
+#ifdef THORCOM_FAULT_REPORTING
+    #define TFR_FAULT_ANTENNA_SHORT_CIRCUIT (1<<0);
+    #define TFR_FAULT_ANTENNA_OPEN_CIRCUIT  (1<<1);
     int faults;                         /* bit field of faults */
-#endif /* THORCOM_FAULT_REPORTING_ENABLE */
+#endif /* THORCOM_FAULT_REPORTING */
 
     /* pack things never reported together to reduce structure size */
 #define UNION_SET	(RTCM2_SET|RTCM3_SET|SUBFRAME_SET|AIS_SET|ATTITUDE_SET|GST_SET|OSCILLATOR_SET|VERSION_SET|LOGMESSAGE_SET|ERROR_SET|TOFF_SET|PPS_SET)

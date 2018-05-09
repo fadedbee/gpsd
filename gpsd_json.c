@@ -238,6 +238,17 @@ void json_tpv_dump(const struct gps_device_t *session,
                 /* TODO: add PPS precision to JSON output */
 	    }
 #endif /* PPS_ENABLE */
+#ifdef THORCOM_FAULT_REPORTING
+	    str_appendf(reply, replylen, "\"faults\":[");
+        if (gpsdata & TFR_FAULT_ANTENNA_SHORT_CIRCUIT) {
+	        str_appendf(reply, replylen, "\"ANTENNA_SHORT_CIRCUIT\",");
+        }
+        if (gpsdata & TFR_FAULT_ANTENNA_OPEN_CIRCUIT) {
+	        str_appendf(reply, replylen, "\"ANTENNA_OPEN_CIRCUIT\",");
+        }
+        str_rstrip_char(reply, ',');
+	    str_appendf(reply, replylen, "],");
+#endif /* THORCOM_FAULT_REPORTING */
 	    str_appendf(reply, replylen,
 			"\"sor\":%.9f,\"chars\":%lu,\"sats\":%2d,"
 			"\"week\":%u,\"tow\":%.3f,\"rollovers\":%d",
