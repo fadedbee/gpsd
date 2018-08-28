@@ -428,11 +428,6 @@ typedef enum {service_unknown,
 	      service_ntrip,
 } servicetype_t;
 
-#ifdef THORCOM_FAULT_REPORTING
-#define TFR_FAULT_ANTENNA_SHORT_CIRCUIT (1<<0);
-#define TFR_FAULT_ANTENNA_OPEN_CIRCUIT  (1<<1);
-#endif /* THORCOM_FAULT_REPORTING */
-
 /*
  * Private state information about an NTRIP stream.
  */

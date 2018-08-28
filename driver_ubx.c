@@ -152,6 +152,10 @@ ubx_msg_mon_hw(struct gps_device_t *session, unsigned char *buf,
     unsigned char astatus = buf[TFR_ASTATUS_OFFSET];
     unsigned char apower = buf[TFR_APOWER_OFFSET]; // ignored for now
 
+    gpsd_log(&session->context->errout, LOG_DATA, 
+        "UBX_MON_HW: aStatus == SHORT %d, aStatus == OPEN %d, aStatus %d\n",
+        astatus == ASTATUS_SHORT, astatus == ASTATUS_OPEN, astatus);
+
     switch (astatus) {
         case ASTATUS_SHORT:
             session->gpsdata.faults |= TFR_FAULT_ANTENNA_SHORT_CIRCUIT;
@@ -1225,12 +1229,15 @@ static void ubx_cfg_prt(struct gps_device_t *session,
 #define TFR_CFG 0x06
 #define TFR_ANT 0x13
 
-#define TFR_RECONFIG  0	/* this means the pins are *NOT* reconfigured */
-#define TFR_PINOCD    0
-#define TFR_PINSCD    0
-#define TFR_PINSWITCH 0 
+#define TFR_RECONFIG  1	/* 1 means the pins are reconfigured */
+#define TFR_PINOCD    0x0D
+#define TFR_PINSCD    0x0F
+#define TFR_PINSWITCH 0x10
 #define TFR_PINS ((unsigned short)(TFR_RECONFIG << 15 | TFR_PINOCD << 10 |\
                                    TFR_PINSCD << 5 | TFR_PINSWITCH << 0))	
+
+    // compile-time safety-check - causes negative-sized array error on failure
+    int TFR_PINS_not_equal_to_0xB5F0[TFR_PINS == 0xB5F0 ? 0 : -1]; 
 
 #define TFR_SVCS      1
 #define TFR_SCD       1 
@@ -1247,6 +1254,16 @@ static void ubx_cfg_prt(struct gps_device_t *session,
 	msg[3] = (TFR_PINS >> 8) & 0xFF;
 
 	(void)ubx_write(session, TFR_CFG, TFR_ANT, msg, 4);
+    gpsd_log(&session->context->errout, LOG_DATA, "QQQ");
+
+    /*
+     * Request that MON HW messages are sent every second.
+     */
+	msg[0] = 0x0a;		/* class */
+	msg[1] = 0x09;		/* msg id  = UBX-MON-HW */
+	msg[2] = 0x01;		/* rate */
+	(void)ubx_write(session, 0x06u, 0x01, msg, 3);
+    gpsd_log(&session->context->errout, LOG_DATA, "RRR");
 #endif /* THORCOM_FAULT_REPORTING */
 
 

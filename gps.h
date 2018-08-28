@@ -2058,8 +2058,8 @@ struct gps_data_t {
     } devices;
 
 #ifdef THORCOM_FAULT_REPORTING
-    #define TFR_FAULT_ANTENNA_SHORT_CIRCUIT (1<<0);
-    #define TFR_FAULT_ANTENNA_OPEN_CIRCUIT  (1<<1);
+    #define TFR_FAULT_ANTENNA_SHORT_CIRCUIT (1<<0)
+    #define TFR_FAULT_ANTENNA_OPEN_CIRCUIT  (1<<1)
     int faults;                         /* bit field of faults */
 #endif /* THORCOM_FAULT_REPORTING */
 
